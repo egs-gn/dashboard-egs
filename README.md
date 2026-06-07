@@ -1,2 +1,2 @@
 # dashboard-egs
-Emmaus grand sud DASHBOARD
+EGS DASHBOARD
