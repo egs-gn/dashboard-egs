@@ -192,6 +192,11 @@ document.addEventListener('DOMContentLoaded', checkAuth);
     <div id="inv-loading" class="loading"><div class="spinner"></div> Chargement de l'inventaire...</div>
     <div id="inv-error" class="error-box" style="display:none;"></div>
     <div id="inv-content" style="display:none;"></div>
+
+    <div class="section-divider"><i class="ti ti-clock-hour-4"></i> Suivi TIG</div>
+    <div id="tig-loading" class="loading"><div class="spinner"></div> Chargement des données TIG...</div>
+    <div id="tig-error" class="error-box" style="display:none;"></div>
+    <div id="tig-content" style="display:none;"></div>
   </div>
 </div>
 
@@ -199,6 +204,7 @@ document.addEventListener('DOMContentLoaded', checkAuth);
 const API_KEY = 'AIzaSyBGi02CYa3xGola8YvLXJqXQKZDY70x3es';
 const SHEET_FLOTTE = '1XsKv2yARIifa53jnBWd8zVgByu15FIchQQGA1tJHOOs';
 const SHEET_INV = '1TYNVmVCpOr6zJvj05hQ3OLKGIz2nJAwOYmUH-sK8XwE';
+const SHEET_TIG = '1_bP51V7DkznH0qJUUBEt4eJR8V4EU-uBeS8_QSy9GUc';
 const NAVY = ['#1A2B5E','#2A3E8F','#4C6BC4','#7B9FE0','#B8CFF5','#D6E5FA'];
 const VEH_COLORS = ['#F5C842','#2A3E8F','#7B9FE0','#CBD5E1','#4C6BC4','#B8CFF5'];
 let charts = {};
@@ -541,9 +547,90 @@ async function loadInventaire() {
   }
 }
 
+async function loadTIG() {
+  document.getElementById('tig-loading').style.display = 'flex';
+  document.getElementById('tig-content').style.display = 'none';
+  document.getElementById('tig-error').style.display = 'none';
+  try {
+    // I1 = heures 2025, L1 = heures 2026
+    const rows = await fetchSheet(SHEET_TIG, 'Stagiaires!I1:L1');
+    const h2025 = parseFloat((rows[0] && rows[0][0] ? rows[0][0] : '0').toString().replace(',','.')) || 0;
+    const h2026 = parseFloat((rows[0] && rows[0][3] ? rows[0][3] : '0').toString().replace(',','.')) || 0;
+
+    const maxH = Math.max(h2025, h2026, 1);
+    const pct2025 = Math.round(h2025 / maxH * 100);
+    const pct2026 = Math.round(h2026 / maxH * 100);
+
+    let evolution = '';
+    let evoColor = '#64748B';
+    if (h2025 > 0) {
+      const diff = Math.round((h2026 - h2025) / h2025 * 100);
+      if (diff > 0) { evolution = '+' + diff + '%'; evoColor = '#22C55E'; }
+      else if (diff < 0) { evolution = diff + '%'; evoColor = '#E24B4A'; }
+      else { evolution = '='; evoColor = '#64748B'; }
+    }
+
+    document.getElementById('tig-content').innerHTML =
+      '<div style="background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,0.07);padding:20px 24px;">' +
+
+        // Ligne des 2 chiffres clés
+        '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center;margin-bottom:24px;">' +
+
+          // 2025
+          '<div style="text-align:center;">' +
+            '<div style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">2025</div>' +
+            '<div style="font-size:42px;font-weight:500;color:#1A2B5E;line-height:1;">' + h2025.toLocaleString('fr-FR') + '</div>' +
+            '<div style="font-size:12px;color:#94A3B8;margin-top:4px;">heures</div>' +
+          '</div>' +
+
+          // Flèche évolution
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+            '<div style="font-size:22px;font-weight:700;color:' + evoColor + ';">' + evolution + '</div>' +
+            '<div style="font-size:10px;color:#94A3B8;">vs 2025</div>' +
+          '</div>' +
+
+          // 2026
+          '<div style="text-align:center;">' +
+            '<div style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">2026</div>' +
+            '<div style="font-size:42px;font-weight:500;color:#2A3E8F;line-height:1;">' + h2026.toLocaleString('fr-FR') + '</div>' +
+            '<div style="font-size:12px;color:#94A3B8;margin-top:4px;">heures</div>' +
+          '</div>' +
+        '</div>' +
+
+        // Barres comparatives
+        '<div style="display:flex;flex-direction:column;gap:12px;">' +
+          '<div style="display:flex;align-items:center;gap:12px;">' +
+            '<span style="min-width:36px;font-size:12px;font-weight:600;color:#1A2B5E;">2025</span>' +
+            '<div style="flex:1;background:#EEF0F6;border-radius:6px;height:14px;overflow:hidden;">' +
+              '<div style="width:' + pct2025 + '%;height:14px;background:#1A2B5E;border-radius:6px;transition:width 0.6s;"></div>' +
+            '</div>' +
+            '<span style="min-width:50px;font-size:12px;font-weight:500;color:#1A2B5E;text-align:right;">' + h2025.toLocaleString('fr-FR') + ' h</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:12px;">' +
+            '<span style="min-width:36px;font-size:12px;font-weight:600;color:#2A3E8F;">2026</span>' +
+            '<div style="flex:1;background:#EEF0F6;border-radius:6px;height:14px;overflow:hidden;">' +
+              '<div style="width:' + pct2026 + '%;height:14px;background:#F5C842;border-radius:6px;transition:width 0.6s;"></div>' +
+            '</div>' +
+            '<span style="min-width:50px;font-size:12px;font-weight:500;color:#2A3E8F;text-align:right;">' + h2026.toLocaleString('fr-FR') + ' h</span>' +
+          '</div>' +
+        '</div>' +
+
+        // Note bas
+        '<div style="margin-top:14px;padding-top:12px;border-top:0.5px solid #F1F5F9;font-size:10px;color:#94A3B8;">Données issues de la feuille Stagiaires · Mis à jour automatiquement</div>' +
+      '</div>';
+
+    document.getElementById('tig-loading').style.display = 'none';
+    document.getElementById('tig-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('tig-loading').style.display = 'none';
+    document.getElementById('tig-error').textContent = 'Erreur TIG : ' + e.message;
+    document.getElementById('tig-error').style.display = 'block';
+  }
+}
+
 async function loadAll() {
   document.getElementById('last-update').textContent = 'Actualisation...';
-  await Promise.all([loadFlotte(), loadInventaire()]);
+  await Promise.all([loadFlotte(), loadInventaire(), loadTIG()]);
   const now = new Date();
   document.getElementById('last-update').textContent = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 }
