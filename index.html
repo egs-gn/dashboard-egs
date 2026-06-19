@@ -509,11 +509,7 @@ async function loadInventaire() {
     }).join('');
 
     document.getElementById('inv-content').innerHTML =
-      '<div class="hero-row" style="margin-bottom:16px;">' +
-        '<div class="hero-card"><div class="hero-card-inner"><div class="hero-card-label">Total paires</div><div class="hero-card-value">' + total + '</div></div><div class="hero-card-bar"><div class="hero-card-bar-fill" style="width:100%;background:#2A3E8F;"></div></div></div>' +
-        '<div class="hero-card"><div class="hero-card-inner"><div class="hero-card-label">Alertes</div><div class="hero-card-value" style="color:#D97706;">' + alertes + '</div></div><div class="hero-card-bar"><div class="hero-card-bar-fill" style="width:' + Math.round(alertes/inv.length*100) + '%;background:#F59E0B;"></div></div></div>' +
-        '<div class="hero-card"><div class="hero-card-inner"><div class="hero-card-label">Ruptures</div><div class="hero-card-value" style="color:#E24B4A;">' + ruptures + '</div></div><div class="hero-card-bar"><div class="hero-card-bar-fill" style="width:' + Math.round(ruptures/inv.length*100) + '%;background:#E24B4A;"></div></div></div>' +
-      '</div>' +
+
 
       (ruptureItems.length > 0 ?
         '<div style="background:#FFF8F8;border:0.5px solid #FBBFBF;border-radius:12px;padding:14px 16px;margin-bottom:10px;">' +
