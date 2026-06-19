@@ -571,12 +571,64 @@ async function loadTIG() {
     }
 
     const evoIcon = h2026 >= h2025 ? '▲' : '▼';
-    const objectif = Math.max(h2025, h2026) * 1.1; // objectif = +10% du max
+    const objectif = Math.max(h2025, h2026) * 1.1;
     const pctAnneau2025 = Math.min(Math.round(h2025 / objectif * 100), 100);
     const pctAnneau2026 = Math.min(Math.round(h2026 / objectif * 100), 100);
 
     document.getElementById('tig-content').innerHTML =
-      '<div style="background:linear-gradient(135deg,#0F172A 0%,#1A2B5E 100%);border-radius:16px;padding:28px 32px;color:#fff;">' +
+      '<div style="background:#fff;border-radius:16px;border:0.5px solid rgba(0,0,0,0.07);padding:28px 32px;">' +
+        '<div style="display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap;">' +
+
+          // Anneau 2025
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:14px;">' +
+            '<div style="position:relative;width:160px;height:160px;">' +
+              '<canvas id="tig-chart-2025" width="160" height="160"></canvas>' +
+              '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">' +
+                '<div style="font-size:32px;font-weight:700;color:#1A2B5E;line-height:1;">' + h2025.toLocaleString('fr-FR') + '</div>' +
+                '<div style="font-size:11px;color:#94A3B8;">heures</div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="text-align:center;">' +
+              '<div style="font-size:15px;font-weight:600;color:#1A2B5E;">2025</div>' +
+              '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">' + pctAnneau2025 + '% de l\'objectif</div>' +
+            '</div>' +
+          '</div>' +
+
+          // Évolution
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+            '<div style="font-size:13px;color:#94A3B8;">évolution</div>' +
+            '<div style="font-size:36px;font-weight:800;color:' + evoColor + ';line-height:1;">' + evolution + '</div>' +
+            '<div style="font-size:20px;color:' + evoColor + ';">' + evoIcon + '</div>' +
+          '</div>' +
+
+          // Anneau 2026
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:14px;">' +
+            '<div style="position:relative;width:160px;height:160px;">' +
+              '<canvas id="tig-chart-2026" width="160" height="160"></canvas>' +
+              '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">' +
+                '<div style="font-size:32px;font-weight:700;color:#F5C842;line-height:1;">' + h2026.toLocaleString('fr-FR') + '</div>' +
+                '<div style="font-size:11px;color:#94A3B8;">heures</div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="text-align:center;">' +
+              '<div style="font-size:15px;font-weight:600;color:#1A2B5E;">2026</div>' +
+              '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">' + pctAnneau2026 + '% de l\'objectif</div>' +
+            '</div>' +
+          '</div>' +
+
+        '</div>' +
+        '<div style="margin-top:20px;padding-top:14px;border-top:0.5px solid #F1F5F9;font-size:10px;color:#CBD5E1;text-align:center;">Données issues de la feuille Stagiaires · Mis à jour automatiquement</div>' +
+      '</div>';
+
+    setTimeout(() => {
+      const donutOpts = (val, max, color) => ({
+        type: 'doughnut',
+        data: { datasets: [{ data: [val, Math.max(max - val, 0)], backgroundColor: [color, '#F1F5F9'], borderWidth: 0 }] },
+        options: { cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1000, easing: 'easeInOutQuart' } }
+      });
+      makeChart('tig-chart-2025', donutOpts(h2025, objectif, '#1A2B5E'));
+      makeChart('tig-chart-2026', donutOpts(h2026, objectif, '#F5C842'));
+    }, 50);
 
         // Titre
         '<div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:24px;text-align:center;">Travail d\'Intérêt Général · Comparatif annuel</div>' +
