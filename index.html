@@ -65,8 +65,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .podium-name { font-size: 10px; font-weight: 500; color: #0F172A; }
 .podium-count { font-size: 9px; color: #64748B; }
 .plate-badge { background: #EEF2FF; color: #2A3E8F; font-size: 10px; font-weight: 500; padding: 1px 8px; border-radius: 4px; letter-spacing: 0.5px; }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
+.tab-panel { display: block; }
+.section-divider { display: flex; align-items: center; gap: 10px; background: #1A2B5E; color: #fff; font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 10px; margin: 20px 0 14px; letter-spacing: 0.4px; }
+.section-divider i { font-size: 16px; }
 .inv-card { background: #fff; border-radius: 12px; border: 0.5px solid rgba(0,0,0,0.07); padding: 16px 18px; margin-bottom: 12px; }
 .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 12px; }
 .bar-size { min-width: 32px; color: #64748B; font-size: 11px; }
@@ -179,23 +180,18 @@ document.addEventListener('DOMContentLoaded', checkAuth);
         <button class="refresh-btn" onclick="loadAll()"><i class="ti ti-refresh" style="font-size:12px;"></i> Actualiser</button>
       </div>
     </div>
-    <div class="dash-tabs">
-      <button class="dash-tab active" id="btn-flotte" onclick="switchTab('flotte')"><i class="ti ti-truck" style="font-size:14px;"></i> Suivi de flotte</button>
-      <button class="dash-tab" id="btn-inventaire" onclick="switchTab('inventaire')"><i class="ti ti-shoe" style="font-size:14px;"></i> Inventaire chaussures</button>
-    </div>
   </div>
 
   <div class="dash-body">
-    <div id="tab-flotte" class="tab-panel active">
-      <div id="flotte-loading" class="loading"><div class="spinner"></div> Chargement des données...</div>
-      <div id="flotte-error" class="error-box" style="display:none;"></div>
-      <div id="flotte-content" style="display:none;"></div>
-    </div>
-    <div id="tab-inventaire" class="tab-panel">
-      <div id="inv-loading" class="loading"><div class="spinner"></div> Chargement de l'inventaire...</div>
-      <div id="inv-error" class="error-box" style="display:none;"></div>
-      <div id="inv-content" style="display:none;"></div>
-    </div>
+    <div class="section-divider"><i class="ti ti-truck"></i> Suivi de flotte</div>
+    <div id="flotte-loading" class="loading"><div class="spinner"></div> Chargement des données...</div>
+    <div id="flotte-error" class="error-box" style="display:none;"></div>
+    <div id="flotte-content" style="display:none;"></div>
+
+    <div class="section-divider"><i class="ti ti-shoe"></i> Inventaire chaussures</div>
+    <div id="inv-loading" class="loading"><div class="spinner"></div> Chargement de l'inventaire...</div>
+    <div id="inv-error" class="error-box" style="display:none;"></div>
+    <div id="inv-content" style="display:none;"></div>
   </div>
 </div>
 
@@ -207,12 +203,6 @@ const NAVY = ['#1A2B5E','#2A3E8F','#4C6BC4','#7B9FE0','#B8CFF5','#D6E5FA'];
 const VEH_COLORS = ['#F5C842','#2A3E8F','#7B9FE0','#CBD5E1','#4C6BC4','#B8CFF5'];
 let charts = {};
 
-function switchTab(name) {
-  document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  document.getElementById('btn-' + name).classList.add('active');
-}
 
 async function fetchSheet(id, range) {
   const url = 'https://sheets.googleapis.com/v4/spreadsheets/' + id + '/values/' + encodeURIComponent(range) + '?key=' + API_KEY;
@@ -459,22 +449,10 @@ async function loadFlotte() {
       '<div class="section-label">Kilométrage de la semaine</div>' +
       '<div class="truck-row">' + truckCardsHTML + '</div>' +
 
-      '<div class="section-label">Répartition des sorties</div>' +
-      '<div class="charts-row">' +
-        '<div class="card"><div class="card-title">Par chauffeur</div><div class="card-ct">' + totalSorties + ' sorties enregistrées</div><div class="pie-wrap"><div style="position:relative;width:110px;height:110px;flex-shrink:0;"><canvas id="chartChauffeur" role="img" aria-label="Sorties par chauffeur">Répartition par chauffeur.</canvas></div><div class="pie-leg">' + legChauffeur + '</div></div></div>' +
-        '<div class="card"><div class="card-title">Par véhicule</div><div class="card-ct">' + totalSorties + ' sorties enregistrées</div><div class="pie-wrap"><div style="position:relative;width:110px;height:110px;flex-shrink:0;"><canvas id="chartVehicule" role="img" aria-label="Sorties par véhicule">Répartition par véhicule.</canvas></div><div class="pie-leg">' + legVehicule + '</div></div></div>' +
-      '</div>';
+      '';
 
     document.getElementById('flotte-loading').style.display = 'none';
     document.getElementById('flotte-content').style.display = 'block';
-
-    const pieOpts = {
-      responsive: true, maintainAspectRatio: false, cutout: '62%',
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      elements: { arc: { borderWidth: 3, borderColor: '#fff' } }
-    };
-    makeChart('chartChauffeur', { type:'doughnut', data:{ datasets:[{ data: chauffeurLabels.map(l => chauffeurs[l]), backgroundColor: chauffeurPieColors, borderWidth: 3 }] }, options: pieOpts });
-    makeChart('chartVehicule', { type:'doughnut', data:{ datasets:[{ data: vehiculeLabels.map(l => vehicules[l]), backgroundColor: vehiculePieColors, borderWidth: 3 }] }, options: pieOpts });
 
   } catch(e) {
     document.getElementById('flotte-loading').style.display = 'none';
