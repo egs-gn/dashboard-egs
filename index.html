@@ -552,14 +552,9 @@ async function loadTIG() {
   document.getElementById('tig-content').style.display = 'none';
   document.getElementById('tig-error').style.display = 'none';
   try {
-    // I1 = heures 2025, L1 = heures 2026
     const rows = await fetchSheet(SHEET_TIG, 'Stagiaires!I1:L1');
     const h2025 = parseFloat((rows[0] && rows[0][0] ? rows[0][0] : '0').toString().replace(',','.')) || 0;
     const h2026 = parseFloat((rows[0] && rows[0][3] ? rows[0][3] : '0').toString().replace(',','.')) || 0;
-
-    const maxH = Math.max(h2025, h2026, 1);
-    const pct2025 = Math.round(h2025 / maxH * 100);
-    const pct2026 = Math.round(h2026 / maxH * 100);
 
     let evolution = '';
     let evoColor = '#64748B';
@@ -569,17 +564,13 @@ async function loadTIG() {
       else if (diff < 0) { evolution = diff + '%'; evoColor = '#E24B4A'; }
       else { evolution = '='; evoColor = '#64748B'; }
     }
-
     const evoIcon = h2026 >= h2025 ? '▲' : '▼';
     const objectif = Math.max(h2025, h2026) * 1.1;
-    const pctAnneau2025 = Math.min(Math.round(h2025 / objectif * 100), 100);
-    const pctAnneau2026 = Math.min(Math.round(h2026 / objectif * 100), 100);
 
     document.getElementById('tig-content').innerHTML =
       '<div style="background:#fff;border-radius:16px;border:0.5px solid rgba(0,0,0,0.07);padding:28px 32px;">' +
         '<div style="display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap;">' +
 
-          // Anneau 2025
           '<div style="display:flex;flex-direction:column;align-items:center;gap:14px;">' +
             '<div style="position:relative;width:160px;height:160px;">' +
               '<canvas id="tig-chart-2025" width="160" height="160"></canvas>' +
@@ -588,20 +579,15 @@ async function loadTIG() {
                 '<div style="font-size:11px;color:#94A3B8;">heures</div>' +
               '</div>' +
             '</div>' +
-            '<div style="text-align:center;">' +
-              '<div style="font-size:20px;font-weight:700;color:#1A2B5E;">2025</div>' +
-              '<div style="font-size:12px;color:#94A3B8;margin-top:3px;">' + pctAnneau2025 + '% de l\'objectif</div>' +
-            '</div>' +
+            '<div style="font-size:22px;font-weight:700;color:#1A2B5E;text-align:center;">2025</div>' +
           '</div>' +
 
-          // Évolution
           '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
             '<div style="font-size:13px;color:#94A3B8;">évolution</div>' +
             '<div style="font-size:36px;font-weight:800;color:' + evoColor + ';line-height:1;">' + evolution + '</div>' +
             '<div style="font-size:20px;color:' + evoColor + ';">' + evoIcon + '</div>' +
           '</div>' +
 
-          // Anneau 2026
           '<div style="display:flex;flex-direction:column;align-items:center;gap:14px;">' +
             '<div style="position:relative;width:160px;height:160px;">' +
               '<canvas id="tig-chart-2026" width="160" height="160"></canvas>' +
@@ -610,98 +596,25 @@ async function loadTIG() {
                 '<div style="font-size:11px;color:#94A3B8;">heures</div>' +
               '</div>' +
             '</div>' +
-            '<div style="text-align:center;">' +
-              '<div style="font-size:20px;font-weight:700;color:#1A2B5E;">2026</div>' +
-              '<div style="font-size:12px;color:#94A3B8;margin-top:3px;">' + pctAnneau2026 + '% de l\'objectif</div>' +
-            '</div>' +
+            '<div style="font-size:22px;font-weight:700;color:#1A2B5E;text-align:center;">2026</div>' +
           '</div>' +
 
         '</div>' +
       '</div>';
+
+    document.getElementById('tig-loading').style.display = 'none';
+    document.getElementById('tig-content').style.display = 'block';
 
     setTimeout(() => {
       const donutOpts = (val, max, color) => ({
         type: 'doughnut',
         data: { datasets: [{ data: [val, Math.max(max - val, 0)], backgroundColor: [color, '#F1F5F9'], borderWidth: 0 }] },
-        options: { cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1000, easing: 'easeInOutQuart' } }
+        options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1000 } }
       });
       makeChart('tig-chart-2025', donutOpts(h2025, objectif, '#1A2B5E'));
       makeChart('tig-chart-2026', donutOpts(h2026, objectif, '#F5C842'));
     }, 50);
 
-        // Titre
-        '<div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:24px;text-align:center;">Travail d\'Intérêt Général · Comparatif annuel</div>' +
-
-        // Zone principale
-        '<div style="display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap;">' +
-
-          // Anneau 2025
-          '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;">' +
-            '<div style="position:relative;width:140px;height:140px;">' +
-              '<canvas id="tig-chart-2025" width="140" height="140"></canvas>' +
-              '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
-                '<div style="font-size:9px;font-weight:600;letter-spacing:1px;color:rgba(255,255,255,0.4);text-transform:uppercase;">2025</div>' +
-                '<div style="font-size:26px;font-weight:700;color:#fff;line-height:1.1;">' + h2025.toLocaleString('fr-FR') + '</div>' +
-                '<div style="font-size:9px;color:rgba(255,255,255,0.4);">heures</div>' +
-              '</div>' +
-            '</div>' +
-            '<div style="background:rgba(255,255,255,0.08);border-radius:20px;padding:4px 14px;font-size:11px;color:rgba(255,255,255,0.6);">' + pctAnneau2025 + '% objectif</div>' +
-          '</div>' +
-
-          // Évolution centrale
-          '<div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:80px;">' +
-            '<div style="font-size:40px;line-height:1;color:' + evoColor + ';">' + evoIcon + '</div>' +
-            '<div style="font-size:32px;font-weight:800;color:' + evoColor + ';line-height:1;">' + evolution + '</div>' +
-            '<div style="font-size:10px;color:rgba(255,255,255,0.35);text-align:center;">vs<br>année préc.</div>' +
-          '</div>' +
-
-          // Anneau 2026
-          '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;">' +
-            '<div style="position:relative;width:140px;height:140px;">' +
-              '<canvas id="tig-chart-2026" width="140" height="140"></canvas>' +
-              '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
-                '<div style="font-size:9px;font-weight:600;letter-spacing:1px;color:rgba(255,255,255,0.4);text-transform:uppercase;">2026</div>' +
-                '<div style="font-size:26px;font-weight:700;color:#F5C842;line-height:1.1;">' + h2026.toLocaleString('fr-FR') + '</div>' +
-                '<div style="font-size:9px;color:rgba(255,255,255,0.4);">heures</div>' +
-              '</div>' +
-            '</div>' +
-            '<div style="background:rgba(245,200,66,0.15);border-radius:20px;padding:4px 14px;font-size:11px;color:#F5C842;">' + pctAnneau2026 + '% objectif</div>' +
-          '</div>' +
-
-        '</div>' +
-
-        // Barre de progression comparative en bas
-        '<div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">' +
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
-            '<span style="font-size:11px;color:rgba(255,255,255,0.5);min-width:36px;">2025</span>' +
-            '<div style="flex:1;background:rgba(255,255,255,0.08);border-radius:99px;height:8px;overflow:hidden;">' +
-              '<div style="width:' + pct2025 + '%;height:8px;background:rgba(255,255,255,0.4);border-radius:99px;"></div>' +
-            '</div>' +
-            '<span style="font-size:11px;color:rgba(255,255,255,0.5);min-width:55px;text-align:right;">' + h2025.toLocaleString('fr-FR') + ' h</span>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<span style="font-size:11px;color:#F5C842;min-width:36px;">2026</span>' +
-            '<div style="flex:1;background:rgba(255,255,255,0.08);border-radius:99px;height:8px;overflow:hidden;">' +
-              '<div style="width:' + pct2026 + '%;height:8px;background:#F5C842;border-radius:99px;"></div>' +
-            '</div>' +
-            '<span style="font-size:11px;color:#F5C842;min-width:55px;text-align:right;">' + h2026.toLocaleString('fr-FR') + ' h</span>' +
-          '</div>' +
-        '</div>' +
-
-      '</div>';
-
-    setTimeout(() => {
-      const donutOpts = (val, max, color, trackColor) => ({
-        type: 'doughnut',
-        data: { datasets: [{ data: [val, Math.max(max - val, 0)], backgroundColor: [color, trackColor], borderWidth: 0 }] },
-        options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1000, easing: 'easeInOutQuart' } }
-      });
-      makeChart('tig-chart-2025', donutOpts(h2025, objectif, 'rgba(255,255,255,0.85)', 'rgba(255,255,255,0.08)'));
-      makeChart('tig-chart-2026', donutOpts(h2026, objectif, '#F5C842', 'rgba(245,200,66,0.12)'));
-    }, 50);
-
-    document.getElementById('tig-loading').style.display = 'none';
-    document.getElementById('tig-content').style.display = 'block';
   } catch(e) {
     document.getElementById('tig-loading').style.display = 'none';
     document.getElementById('tig-error').textContent = 'Erreur TIG : ' + e.message;
