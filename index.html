@@ -211,10 +211,19 @@ let charts = {};
 
 
 async function fetchSheet(id, range) {
-  const url = 'https://sheets.googleapis.com/v4/spreadsheets/' + id + '/values/' + encodeURIComponent(range) + '?key=' + API_KEY;
+  const url = 'https://sheets.googleapis.com/v4/spreadsheets/' +
+    encodeURIComponent(id) + '/values/' + encodeURIComponent(range) +
+    '?valueRenderOption=UNFORMATTED_VALUE&key=' + encodeURIComponent(API_KEY);
+
   const res = await fetch(url);
-  if (!res.ok) throw new Error('Erreur API Google Sheets (code ' + res.status + ')');
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const detail = data?.error?.message || 'Erreur inconnue';
+    console.error('Erreur Google Sheets', { status: res.status, range, data });
+    throw new Error('API Google Sheets ' + res.status + ' — ' + detail);
+  }
+
   return data.values || [];
 }
 
@@ -552,9 +561,47 @@ async function loadTIG() {
   document.getElementById('tig-content').style.display = 'none';
   document.getElementById('tig-error').style.display = 'none';
   try {
-    const rows = await fetchSheet(SHEET_TIG, 'Stagiaires!I1:L1');
-    const h2025 = parseFloat((rows[0] && rows[0][0] ? rows[0][0] : '0').toString().replace(',','.')) || 0;
-    const h2026 = parseFloat((rows[0] && rows[0][3] ? rows[0][3] : '0').toString().replace(',','.')) || 0;
+    // L'onglet visible dans le fichier Google Sheets s'appelle « TIG ».
+    // On lit plusieurs lignes afin que le dashboard continue de fonctionner
+    // même si les blocs de totaux sont déplacés de quelques lignes.
+    const rows = await fetchSheet(SHEET_TIG, "'TIG'!I1:M20");
+
+    const toNumber = value => {
+      if (typeof value === 'number') return value;
+      const cleaned = String(value ?? '')
+        .replace(/\s/g, '')
+        .replace(',', '.')
+        .replace(/[^0-9.-]/g, '');
+      return Number.parseFloat(cleaned) || 0;
+    };
+
+    let h2025 = 0;
+    let h2026 = 0;
+
+    rows.forEach(row => {
+      row.forEach((cell, index) => {
+        const label = String(cell ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+        if (label.includes('total heures') && label.includes('2025')) {
+          h2025 = toNumber(row[index + 1]);
+        }
+        if (label.includes('total heures') && label.includes('2026')) {
+          h2026 = toNumber(row[index + 1]);
+        }
+      });
+    });
+
+    // Secours adapté à la disposition actuelle : I=libellé 2025, J=valeur,
+    // L=libellé 2026 et M=valeur.
+    if (!h2025 || !h2026) {
+      for (const row of rows) {
+        if (!h2025 && toNumber(row[1]) > 0) h2025 = toNumber(row[1]);
+        if (!h2026 && toNumber(row[4]) > 0) h2026 = toNumber(row[4]);
+      }
+    }
+
+    if (!h2025 && !h2026) {
+      throw new Error('Totaux 2025 et 2026 introuvables dans l'onglet TIG (colonnes I à M).');
+    }
 
     let evolution = '';
     let evoColor = '#64748B';
