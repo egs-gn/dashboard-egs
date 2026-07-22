@@ -205,6 +205,11 @@ document.addEventListener('DOMContentLoaded', checkAuth);
     <div id="stage-loading" class="loading"><div class="spinner"></div> Chargement des heures de stage...</div>
     <div id="stage-error" class="error-box" style="display:none;"></div>
     <div id="stage-content" style="display:none;"></div>
+
+    <div class="section-divider"><i class="ti ti-heart-handshake"></i> Heures de bénévolat</div>
+    <div id="benevolat-loading" class="loading"><div class="spinner"></div> Chargement des heures de bénévolat...</div>
+    <div id="benevolat-error" class="error-box" style="display:none;"></div>
+    <div id="benevolat-content" style="display:none;"></div>
   </div>
 </div>
 
@@ -213,6 +218,7 @@ const API_KEY = 'AIzaSyBGi02CYa3xGola8YvLXJqXQKZDY70x3es';
 const SHEET_FLOTTE = '1XsKv2yARIifa53jnBWd8zVgByu15FIchQQGA1tJHOOs';
 const SHEET_INV = '1TYNVmVCpOr6zJvj05hQ3OLKGIz2nJAwOYmUH-sK8XwE';
 const SHEET_TIG = '1_bP51V7DkznH0qJUUBEt4eJR8V4EU-uBeS8_QSy9GUc';
+const SHEET_BENEVOLAT = '1OlWr2nJLA5z3hpxi-K25qKt9XHNTv6Aikuuk1PVw5Yw';
 const STAGE_SHEET_GID = 1130901138;
 const NAVY = ['#1A2B5E','#2A3E8F','#4C6BC4','#7B9FE0','#B8CFF5','#D6E5FA'];
 const VEH_COLORS = ['#F5C842','#2A3E8F','#7B9FE0','#CBD5E1','#4C6BC4','#B8CFF5'];
@@ -773,9 +779,53 @@ async function loadStage() {
   }
 }
 
+
+async function loadBenevolat() {
+  const loading = document.getElementById('benevolat-loading');
+  const content = document.getElementById('benevolat-content');
+  const error = document.getElementById('benevolat-error');
+
+  loading.style.display = 'flex';
+  content.style.display = 'none';
+  error.style.display = 'none';
+
+  try {
+    const rows = await fetchSheet(SHEET_BENEVOLAT, "'Dashboard'!B17");
+    const rawValue = rows?.[0]?.[0];
+
+    if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') {
+      throw new Error('la cellule Dashboard!B17 est vide.');
+    }
+
+    const displayValue = String(rawValue).trim();
+    content.innerHTML =
+      '<div class="hero-row" style="grid-template-columns:minmax(0,1fr);">' +
+        '<div class="hero-card">' +
+          '<div class="hero-card-inner">' +
+            '<div>' +
+              '<div class="hero-card-label"><i class="ti ti-heart-handshake"></i> Total des heures de bénévolat</div>' +
+              '<div class="hero-card-value">' + displayValue + '</div>' +
+              '<div class="hero-card-sub"><i class="ti ti-table"></i> Donnée issue de Dashboard!B17</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="hero-card-bar">' +
+            '<div class="hero-card-bar-fill" style="width:100%;background:#2A3E8F;"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+  } catch (e) {
+    loading.style.display = 'none';
+    error.textContent = 'Erreur heures de bénévolat : ' + e.message;
+    error.style.display = 'block';
+  }
+}
+
 async function loadAll() {
   document.getElementById('last-update').textContent = 'Actualisation...';
-  await Promise.all([loadFlotte(), loadInventaire(), loadTIG(), loadStage()]);
+  await Promise.all([loadFlotte(), loadInventaire(), loadTIG(), loadStage(), loadBenevolat()]);
   const now = new Date();
   document.getElementById('last-update').textContent = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 }
