@@ -200,6 +200,11 @@ document.addEventListener('DOMContentLoaded', checkAuth);
     <div id="tig-loading" class="loading"><div class="spinner"></div> Chargement des données TIG...</div>
     <div id="tig-error" class="error-box" style="display:none;"></div>
     <div id="tig-content" style="display:none;"></div>
+
+    <div class="section-divider"><i class="ti ti-school"></i> Heures de stage</div>
+    <div id="stage-loading" class="loading"><div class="spinner"></div> Chargement des heures de stage...</div>
+    <div id="stage-error" class="error-box" style="display:none;"></div>
+    <div id="stage-content" style="display:none;"></div>
   </div>
 </div>
 
@@ -208,6 +213,7 @@ const API_KEY = 'AIzaSyBGi02CYa3xGola8YvLXJqXQKZDY70x3es';
 const SHEET_FLOTTE = '1XsKv2yARIifa53jnBWd8zVgByu15FIchQQGA1tJHOOs';
 const SHEET_INV = '1TYNVmVCpOr6zJvj05hQ3OLKGIz2nJAwOYmUH-sK8XwE';
 const SHEET_TIG = '1_bP51V7DkznH0qJUUBEt4eJR8V4EU-uBeS8_QSy9GUc';
+const STAGE_SHEET_GID = 1130901138;
 const NAVY = ['#1A2B5E','#2A3E8F','#4C6BC4','#7B9FE0','#B8CFF5','#D6E5FA'];
 const VEH_COLORS = ['#F5C842','#2A3E8F','#7B9FE0','#CBD5E1','#4C6BC4','#B8CFF5'];
 let charts = {};
@@ -693,9 +699,83 @@ async function loadTIG() {
   }
 }
 
+async function getSheetTitleByGid(spreadsheetId, gid) {
+  const url = 'https://sheets.googleapis.com/v4/spreadsheets/' +
+    encodeURIComponent(spreadsheetId) +
+    '?fields=sheets.properties(sheetId,title)&key=' + encodeURIComponent(API_KEY);
+
+  const res = await fetch(url);
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const detail = data?.error?.message || 'Erreur inconnue';
+    throw new Error('Impossible de retrouver l’onglet de stage : ' + detail);
+  }
+
+  const sheet = (data.sheets || []).find(item => Number(item?.properties?.sheetId) === Number(gid));
+  if (!sheet?.properties?.title) {
+    throw new Error('Aucun onglet trouvé pour le gid ' + gid + '.');
+  }
+
+  return sheet.properties.title;
+}
+
+async function loadStage() {
+  document.getElementById('stage-loading').style.display = 'flex';
+  document.getElementById('stage-content').style.display = 'none';
+  document.getElementById('stage-error').style.display = 'none';
+
+  try {
+    const sheetTitle = await getSheetTitleByGid(SHEET_TIG, STAGE_SHEET_GID);
+    const safeTitle = sheetTitle.replace(/'/g, "''");
+    const rows = await fetchSheet(SHEET_TIG, "'" + safeTitle + "'!M2");
+    const rawValue = rows?.[0]?.[0];
+
+    if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') {
+      throw new Error('La cellule M2 de l’onglet « ' + sheetTitle + ' » est vide.');
+    }
+
+    const cleaned = String(rawValue)
+      .replace(/\s/g, '')
+      .replace(',', '.')
+      .replace(/[^0-9.-]/g, '');
+    const numericValue = Number.parseFloat(cleaned);
+    const displayedValue = Number.isFinite(numericValue)
+      ? numericValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+      : String(rawValue);
+
+    document.getElementById('stage-content').innerHTML =
+      '<div class="hero-card" style="max-width:520px;margin:0 auto;">' +
+        '<div class="hero-card-inner" style="min-height:150px;">' +
+          '<div class="hero-card-label">' +
+            '<i class="ti ti-school" style="font-size:16px;color:#2A3E8F;"></i>' +
+            ' Heures de stage' +
+          '</div>' +
+          '<div>' +
+            '<div class="hero-card-value" style="font-size:44px;color:#1A2B5E;">' + displayedValue + ' h</div>' +
+            '<div class="hero-card-sub" style="margin-top:10px;">' +
+              '<i class="ti ti-table" style="font-size:13px;"></i>' +
+              ' Donnée issue de la cellule M2 — onglet « ' + sheetTitle + ' »' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="hero-card-bar">' +
+          '<div class="hero-card-bar-fill" style="width:100%;background:#F5C842;"></div>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('stage-loading').style.display = 'none';
+    document.getElementById('stage-content').style.display = 'block';
+  } catch (e) {
+    document.getElementById('stage-loading').style.display = 'none';
+    document.getElementById('stage-error').textContent = 'Erreur heures de stage : ' + e.message;
+    document.getElementById('stage-error').style.display = 'block';
+  }
+}
+
 async function loadAll() {
   document.getElementById('last-update').textContent = 'Actualisation...';
-  await Promise.all([loadFlotte(), loadInventaire(), loadTIG()]);
+  await Promise.all([loadFlotte(), loadInventaire(), loadTIG(), loadStage()]);
   const now = new Date();
   document.getElementById('last-update').textContent = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 }
