@@ -219,6 +219,7 @@ const SHEET_FLOTTE = '1XsKv2yARIifa53jnBWd8zVgByu15FIchQQGA1tJHOOs';
 const SHEET_INV = '1TYNVmVCpOr6zJvj05hQ3OLKGIz2nJAwOYmUH-sK8XwE';
 const SHEET_TIG = '1_bP51V7DkznH0qJUUBEt4eJR8V4EU-uBeS8_QSy9GUc';
 const SHEET_BENEVOLAT = '1OlWr2nJLA5z3hpxi-K25qKt9XHNTv6Aikuuk1PVw5Yw';
+const BENEVOLAT_SHEET_GID = 1165750423;
 const STAGE_SHEET_GID = 1130901138;
 const NAVY = ['#1A2B5E','#2A3E8F','#4C6BC4','#7B9FE0','#B8CFF5','#D6E5FA'];
 const VEH_COLORS = ['#F5C842','#2A3E8F','#7B9FE0','#CBD5E1','#4C6BC4','#B8CFF5'];
@@ -790,11 +791,13 @@ async function loadBenevolat() {
   error.style.display = 'none';
 
   try {
-    const rows = await fetchSheet(SHEET_BENEVOLAT, "'Dashboard'!B17");
+    const sheetTitle = await getSheetTitleByGid(SHEET_BENEVOLAT, BENEVOLAT_SHEET_GID);
+    const safeTitle = sheetTitle.replace(/'/g, "''");
+    const rows = await fetchSheet(SHEET_BENEVOLAT, "'" + safeTitle + "'!B17");
     const rawValue = rows?.[0]?.[0];
 
     if (rawValue === undefined || rawValue === null || String(rawValue).trim() === '') {
-      throw new Error('la cellule Dashboard!B17 est vide.');
+      throw new Error('la cellule B17 de l’onglet « ' + sheetTitle + ' » est vide.');
     }
 
     const displayValue = String(rawValue).trim();
@@ -805,7 +808,7 @@ async function loadBenevolat() {
             '<div>' +
               '<div class="hero-card-label"><i class="ti ti-heart-handshake"></i> Total des heures de bénévolat</div>' +
               '<div class="hero-card-value">' + displayValue + '</div>' +
-              '<div class="hero-card-sub"><i class="ti ti-table"></i> Donnée issue de Dashboard!B17</div>' +
+              '<div class="hero-card-sub"><i class="ti ti-table"></i> Donnée issue de la cellule B17 — onglet « ' + sheetTitle + ' »</div>' +
             '</div>' +
           '</div>' +
           '<div class="hero-card-bar">' +
