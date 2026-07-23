@@ -250,6 +250,53 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .hours-card-head { height: 56px; padding: 0 20px; font-size: 16px; }
 }
 
+
+/* ===== Sections principales harmonisées avec Stage & Bénévolat ===== */
+.dashboard-section {
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.07);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 5px 18px rgba(15,23,42,.05);
+  margin-bottom: 20px;
+}
+.dashboard-section-head {
+  min-height: 64px;
+  padding: 0 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #13285F 0%, #1A2B5E 100%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.dashboard-section-head i { font-size: 24px; }
+.dashboard-section-body { padding: 22px; background: #fff; }
+.dashboard-section-body .loading { min-height: 130px; }
+.dashboard-section-body .error-box { margin-bottom: 0; }
+
+/* Le rectangle blanc de la section remplace les anciens panneaux imbriqués */
+.dashboard-section-inventory .shoe-inventory-panel {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+.dashboard-section-tig #tig-content > div {
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 6px 10px 12px !important;
+}
+
+@media (max-width: 520px) {
+  .dashboard-section-head { min-height: 56px; padding: 0 20px; font-size: 16px; }
+  .dashboard-section-head i { font-size: 22px; }
+  .dashboard-section-body { padding: 15px; }
+}
+
 </style>
 </head>
 <body>
@@ -353,20 +400,32 @@ document.addEventListener('DOMContentLoaded', checkAuth);
   </div>
 
   <div class="dash-body">
-    <div class="section-divider"><i class="ti ti-truck"></i> Suivi de flotte</div>
-    <div id="flotte-loading" class="loading"><div class="spinner"></div> Chargement des données...</div>
-    <div id="flotte-error" class="error-box" style="display:none;"></div>
-    <div id="flotte-content" style="display:none;"></div>
+    <section class="dashboard-section dashboard-section-fleet">
+      <div class="dashboard-section-head"><i class="ti ti-truck-delivery"></i> Suivi de flotte</div>
+      <div class="dashboard-section-body">
+        <div id="flotte-loading" class="loading"><div class="spinner"></div> Chargement des données...</div>
+        <div id="flotte-error" class="error-box" style="display:none;"></div>
+        <div id="flotte-content" style="display:none;"></div>
+      </div>
+    </section>
 
-    <div class="section-divider"><i class="ti ti-shoe"></i> Inventaire chaussures</div>
-    <div id="inv-loading" class="loading"><div class="spinner"></div> Chargement de l'inventaire...</div>
-    <div id="inv-error" class="error-box" style="display:none;"></div>
-    <div id="inv-content" style="display:none;"></div>
+    <section class="dashboard-section dashboard-section-inventory">
+      <div class="dashboard-section-head"><i class="ti ti-shoe"></i> Inventaire chaussures</div>
+      <div class="dashboard-section-body">
+        <div id="inv-loading" class="loading"><div class="spinner"></div> Chargement de l'inventaire...</div>
+        <div id="inv-error" class="error-box" style="display:none;"></div>
+        <div id="inv-content" style="display:none;"></div>
+      </div>
+    </section>
 
-    <div class="section-divider"><i class="ti ti-clock-hour-4"></i> Suivi TIG</div>
-    <div id="tig-loading" class="loading"><div class="spinner"></div> Chargement des données TIG...</div>
-    <div id="tig-error" class="error-box" style="display:none;"></div>
-    <div id="tig-content" style="display:none;"></div>
+    <section class="dashboard-section dashboard-section-tig">
+      <div class="dashboard-section-head"><i class="ti ti-chart-line"></i> Suivi TIG</div>
+      <div class="dashboard-section-body">
+        <div id="tig-loading" class="loading"><div class="spinner"></div> Chargement des données TIG...</div>
+        <div id="tig-error" class="error-box" style="display:none;"></div>
+        <div id="tig-content" style="display:none;"></div>
+      </div>
+    </section>
 
     <div class="hours-grid">
       <section class="hours-card hours-stage">
@@ -733,7 +792,6 @@ async function loadInventaire() {
 
     document.getElementById('inv-content').innerHTML =
       '<div class="shoe-inventory-panel">' +
-        '<div class="shoe-inventory-title"><i class="ti ti-shoe"></i> Stock par pointure</div>' +
         '<div class="shoe-grid">' + cards + '</div>' +
       '</div>';
 
@@ -813,7 +871,7 @@ async function loadTIG() {
               '<canvas id="tig-chart-2025" width="160" height="160"></canvas>' +
               '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">' +
                 '<div style="font-size:32px;font-weight:700;color:#1A2B5E;line-height:1;">' + h2025.toLocaleString('fr-FR') + '</div>' +
-                '<div style="font-size:11px;color:#94A3B8;">heures</div>' +
+                '<div style="font-size:20px;font-weight:600;color:#1A2B5E;line-height:1.1;">heures</div>' +
               '</div>' +
             '</div>' +
             '<div style="font-size:22px;font-weight:700;color:#1A2B5E;text-align:center;">2025</div>' +
@@ -830,7 +888,7 @@ async function loadTIG() {
               '<canvas id="tig-chart-2026" width="160" height="160"></canvas>' +
               '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">' +
                 '<div style="font-size:32px;font-weight:700;color:#D4A017;line-height:1;">' + h2026.toLocaleString('fr-FR') + '</div>' +
-                '<div style="font-size:11px;color:#94A3B8;">heures</div>' +
+                '<div style="font-size:20px;font-weight:600;color:#1A2B5E;line-height:1.1;">heures</div>' +
               '</div>' +
             '</div>' +
             '<div style="font-size:22px;font-weight:700;color:#1A2B5E;text-align:center;">2026</div>' +
