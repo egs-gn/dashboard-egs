@@ -172,6 +172,84 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   .shoe-icons svg, .shoe-icons.count-3 svg, .shoe-icons.count-4 svg { width: 34px; }
 }
 
+
+/* ===== Indicateurs Stage & Bénévolat ===== */
+.hours-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+.hours-card {
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.07);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 5px 18px rgba(15,23,42,.05);
+}
+.hours-card-head {
+  height: 64px;
+  padding: 0 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #13285F 0%, #1A2B5E 100%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.hours-card-head i { font-size: 24px; }
+.hours-card-body {
+  min-height: 130px;
+  padding: 24px 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+.hours-icon {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hours-icon i { font-size: 38px; }
+.hours-stage .hours-icon { background: #FFF6DE; color: #F5B51B; }
+.hours-volunteer .hours-icon { background: #EEF2FF; color: #315BC6; }
+.hours-label {
+  color: #64748B;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin-bottom: 10px;
+}
+.hours-value {
+  color: #13285F;
+  font-size: clamp(38px, 4vw, 56px);
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.hours-accent { height: 5px; }
+.hours-stage .hours-accent { background: #F5C842; }
+.hours-volunteer .hours-accent { background: #315BC6; }
+.hours-status { padding: 14px; text-align: center; color: #64748B; font-size: 13px; }
+@media (max-width: 820px) {
+  .hours-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .hours-card-body { padding: 22px 20px; gap: 16px; min-height: 120px; }
+  .hours-icon { width: 62px; height: 62px; flex-basis: 62px; }
+  .hours-icon i { font-size: 32px; }
+  .hours-card-head { height: 56px; padding: 0 20px; font-size: 16px; }
+}
+
 </style>
 </head>
 <body>
@@ -290,15 +368,31 @@ document.addEventListener('DOMContentLoaded', checkAuth);
     <div id="tig-error" class="error-box" style="display:none;"></div>
     <div id="tig-content" style="display:none;"></div>
 
-    <div class="section-divider"><i class="ti ti-school"></i> Heures de stage</div>
-    <div id="stage-loading" class="loading"><div class="spinner"></div> Chargement des heures de stage...</div>
-    <div id="stage-error" class="error-box" style="display:none;"></div>
-    <div id="stage-content" style="display:none;"></div>
+    <div class="hours-grid">
+      <section class="hours-card hours-stage">
+        <div class="hours-card-head"><i class="ti ti-school"></i> Stage</div>
+        <div class="hours-card-body">
+          <div class="hours-icon"><i class="ti ti-school"></i></div>
+          <div id="stage-value" class="hours-value">—</div>
+        </div>
+        <div class="hours-accent"></div>
+        <div id="stage-loading" class="hours-status">Chargement…</div>
+        <div id="stage-error" class="error-box" style="display:none;margin:12px;"></div>
+        <div id="stage-content" style="display:none;"></div>
+      </section>
 
-    <div class="section-divider"><i class="ti ti-heart-handshake"></i> Heures de bénévolat</div>
-    <div id="benevolat-loading" class="loading"><div class="spinner"></div> Chargement des heures de bénévolat...</div>
-    <div id="benevolat-error" class="error-box" style="display:none;"></div>
-    <div id="benevolat-content" style="display:none;"></div>
+      <section class="hours-card hours-volunteer">
+        <div class="hours-card-head"><i class="ti ti-heart-handshake"></i> Bénévolat</div>
+        <div class="hours-card-body">
+          <div class="hours-icon"><i class="ti ti-heart-handshake"></i></div>
+          <div id="benevolat-value" class="hours-value">—</div>
+        </div>
+        <div class="hours-accent"></div>
+        <div id="benevolat-loading" class="hours-status">Chargement…</div>
+        <div id="benevolat-error" class="error-box" style="display:none;margin:12px;"></div>
+        <div id="benevolat-content" style="display:none;"></div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -810,28 +904,10 @@ async function loadStage() {
       ? numericValue.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
       : String(rawValue);
 
-    document.getElementById('stage-content').innerHTML =
-      '<div class="hero-card" style="max-width:520px;margin:0 auto;">' +
-        '<div class="hero-card-inner" style="min-height:150px;">' +
-          '<div class="hero-card-label">' +
-            '<i class="ti ti-school" style="font-size:16px;color:#2A3E8F;"></i>' +
-            ' Heures de stage' +
-          '</div>' +
-          '<div>' +
-            '<div class="hero-card-value" style="font-size:44px;color:#1A2B5E;">' + displayedValue + ' h</div>' +
-            '<div class="hero-card-sub" style="margin-top:10px;">' +
-              '<i class="ti ti-table" style="font-size:13px;"></i>' +
-              ' Donnée issue de la cellule M2 — onglet « ' + sheetTitle + ' »' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="hero-card-bar">' +
-          '<div class="hero-card-bar-fill" style="width:100%;background:#F5C842;"></div>' +
-        '</div>' +
-      '</div>';
+    document.getElementById('stage-value').textContent = displayedValue + ' h';
 
     document.getElementById('stage-loading').style.display = 'none';
-    document.getElementById('stage-content').style.display = 'block';
+
   } catch (e) {
     document.getElementById('stage-loading').style.display = 'none';
     document.getElementById('stage-error').textContent = 'Erreur heures de stage : ' + e.message;
@@ -860,24 +936,10 @@ async function loadBenevolat() {
     }
 
     const displayValue = String(rawValue).trim();
-    content.innerHTML =
-      '<div class="hero-row" style="grid-template-columns:minmax(0,1fr);">' +
-        '<div class="hero-card">' +
-          '<div class="hero-card-inner">' +
-            '<div>' +
-              '<div class="hero-card-label"><i class="ti ti-heart-handshake"></i> Total des heures de bénévolat</div>' +
-              '<div class="hero-card-value">' + displayValue + '</div>' +
-              '<div class="hero-card-sub"><i class="ti ti-table"></i> Donnée issue de la cellule B17 — onglet « ' + sheetTitle + ' »</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="hero-card-bar">' +
-            '<div class="hero-card-bar-fill" style="width:100%;background:#2A3E8F;"></div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+    document.getElementById('benevolat-value').textContent = displayValue + ' h';
 
     loading.style.display = 'none';
-    content.style.display = 'block';
+
   } catch (e) {
     loading.style.display = 'none';
     error.textContent = 'Erreur heures de bénévolat : ' + e.message;
