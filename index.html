@@ -298,6 +298,88 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 }
 
 
+
+/* ===== Livraisons ===== */
+.delivery-grid {
+  display: grid;
+  grid-template-columns: minmax(250px, .72fr) minmax(0, 1.7fr);
+  gap: 20px;
+  align-items: stretch;
+}
+.delivery-total-card {
+  min-height: 330px;
+  border: 1px solid #E2E8F0;
+  border-radius: 15px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 14px rgba(15,23,42,.04);
+}
+.delivery-total-head {
+  min-height: 62px;
+  padding: 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #13285F;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .45px;
+}
+.delivery-total-head i { font-size: 23px; color: #2A3E8F; }
+.delivery-total-body {
+  flex: 1;
+  padding: 34px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.delivery-total-value {
+  color: #13285F;
+  font-size: clamp(58px, 7vw, 86px);
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -2px;
+  text-align: center;
+}
+.delivery-total-accent { height: 6px; background: #F5C842; }
+.delivery-chart-card {
+  min-height: 330px;
+  border: 1px solid #E2E8F0;
+  border-radius: 15px;
+  padding: 22px 24px 18px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15,23,42,.04);
+}
+.delivery-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #13285F;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 12px;
+}
+.delivery-chart-title i { font-size: 21px; color: #2A3E8F; }
+.delivery-chart-wrap { position: relative; height: 270px; }
+@media (max-width: 820px) {
+  .delivery-grid { grid-template-columns: 1fr; }
+  .delivery-total-card { min-height: 220px; }
+  .delivery-chart-wrap { height: 330px; }
+}
+@media (max-width: 520px) {
+  .delivery-total-head { min-height: 56px; padding: 0 18px; font-size: 13px; }
+  .delivery-total-body { padding: 28px 18px; }
+  .delivery-chart-card { padding: 18px 14px 14px; }
+  .delivery-chart-wrap { height: 360px; }
+}
+
 /* ===== Equivalent ETP ===== */
 .etp-section { margin-top: 20px; }
 .etp-summary {
@@ -436,6 +518,28 @@ document.addEventListener('DOMContentLoaded', checkAuth);
       </div>
     </section>
 
+
+    <section class="dashboard-section dashboard-section-deliveries">
+      <div class="dashboard-section-head"><i class="ti ti-package-export"></i> Suivi des livraisons</div>
+      <div class="dashboard-section-body">
+        <div id="deliveries-loading" class="loading"><div class="spinner"></div> Chargement des livraisons...</div>
+        <div id="deliveries-error" class="error-box" style="display:none;"></div>
+        <div id="deliveries-content" class="delivery-grid" style="display:none;">
+          <div class="delivery-total-card">
+            <div class="delivery-total-head"><i class="ti ti-truck-delivery"></i> Livraisons effectuées</div>
+            <div class="delivery-total-body">
+              <div id="deliveries-total" class="delivery-total-value">—</div>
+            </div>
+            <div class="delivery-total-accent"></div>
+          </div>
+          <div class="delivery-chart-card">
+            <div class="delivery-chart-title"><i class="ti ti-map-pin"></i> Livraisons par ville</div>
+            <div class="delivery-chart-wrap"><canvas id="deliveries-city-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="dashboard-section dashboard-section-inventory">
       <div class="dashboard-section-head"><i class="ti ti-shoe"></i> Inventaire chaussures</div>
       <div class="dashboard-section-body">
@@ -512,6 +616,7 @@ const SHEET_FLOTTE = '1XsKv2yARIifa53jnBWd8zVgByu15FIchQQGA1tJHOOs';
 const SHEET_INV = '1TYNVmVCpOr6zJvj05hQ3OLKGIz2nJAwOYmUH-sK8XwE';
 const SHEET_TIG = '1_bP51V7DkznH0qJUUBEt4eJR8V4EU-uBeS8_QSy9GUc';
 const SHEET_BENEVOLAT = '1OlWr2nJLA5z3hpxi-K25qKt9XHNTv6Aikuuk1PVw5Yw';
+const SHEET_LIVRAISONS = '1DXyAqGfjOorKS8OQkJ31nuxldo2XgKJR91nzrkWwFZU';
 const BENEVOLAT_SHEET_GID = 1165750423;
 const STAGE_SHEET_GID = 1130901138;
 const NAVY = ['#1A2B5E','#2A3E8F','#4C6BC4','#7B9FE0','#B8CFF5','#D6E5FA'];
@@ -1098,9 +1203,156 @@ async function loadBenevolat() {
   }
 }
 
+
+function parseDeliveryNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+  const raw = String(value ?? '').trim();
+  if (!raw) return NaN;
+  const cleaned = raw
+    .replace(/\s/g, '')
+    .replace(/%/g, '')
+    .replace(',', '.')
+    .replace(/[^0-9.-]/g, '');
+  return cleaned ? Number.parseFloat(cleaned) : NaN;
+}
+
+function extractDeliveryCityRows(rows) {
+  return rows.map(row => {
+    const cells = Array.from({ length: 3 }, (_, index) => String(row?.[index] ?? '').trim());
+    const city = cells.find(cell => cell && !Number.isFinite(parseDeliveryNumber(cell)) && !/ville|commune|livraison|nombre|total|pourcentage|%/i.test(cell));
+    if (!city) return null;
+
+    const numericCandidates = cells
+      .map((cell, index) => ({ cell, index, value: parseDeliveryNumber(cell), isPercent: cell.includes('%') }))
+      .filter(item => Number.isFinite(item.value) && !item.isPercent);
+
+    if (!numericCandidates.length) return null;
+    // Dans un tableau ville / nombre / pourcentage, on conserve le nombre entier le plus élevé.
+    const preferred = numericCandidates
+      .slice()
+      .sort((a, b) => {
+        const aInteger = Number.isInteger(a.value) ? 1 : 0;
+        const bInteger = Number.isInteger(b.value) ? 1 : 0;
+        return (bInteger - aInteger) || (b.value - a.value) || (a.index - b.index);
+      })[0];
+
+    return { city, count: Math.max(0, preferred.value) };
+  }).filter(item => item && item.count > 0)
+    .sort((a, b) => b.count - a.count || a.city.localeCompare(b.city, 'fr'));
+}
+
+const deliveryValueLabelsPlugin = {
+  id: 'deliveryValueLabels',
+  afterDatasetsDraw(chart) {
+    if (chart.canvas.id !== 'deliveries-city-chart') return;
+    const { ctx, chartArea } = chart;
+    const meta = chart.getDatasetMeta(0);
+    ctx.save();
+    ctx.fillStyle = '#13285F';
+    ctx.font = '700 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.textBaseline = 'middle';
+    meta.data.forEach((bar, index) => {
+      const value = chart.data.datasets[0].data[index];
+      const label = Number(value).toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+      const width = ctx.measureText(label).width;
+      const desiredX = bar.x + 8;
+      const x = desiredX + width <= chartArea.right ? desiredX : Math.max(chartArea.left, bar.x - width - 8);
+      ctx.textAlign = x < bar.x ? 'right' : 'left';
+      ctx.fillText(label, x, bar.y);
+    });
+    ctx.restore();
+  }
+};
+Chart.register(deliveryValueLabelsPlugin);
+
+async function loadDeliveries() {
+  const loading = document.getElementById('deliveries-loading');
+  const content = document.getElementById('deliveries-content');
+  const error = document.getElementById('deliveries-error');
+
+  loading.style.display = 'flex';
+  content.style.display = 'none';
+  error.style.display = 'none';
+
+  try {
+    const [totalRows, cityRows] = await Promise.all([
+      fetchSheet(SHEET_LIVRAISONS, "'main'!D12"),
+      fetchSheet(SHEET_LIVRAISONS, "'main'!F4:H15")
+    ]);
+
+    const rawTotal = totalRows?.[0]?.[0];
+    const total = parseDeliveryNumber(rawTotal);
+    if (!Number.isFinite(total)) throw new Error('La cellule D12 de l’onglet « main » est vide ou invalide.');
+
+    const deliveriesByCity = extractDeliveryCityRows(cityRows);
+    if (!deliveriesByCity.length) throw new Error('Aucune donnée exploitable trouvée dans la plage F4:H15.');
+
+    document.getElementById('deliveries-total').textContent = total.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+
+    const rowHeight = 36;
+    const chartHeight = Math.max(270, deliveriesByCity.length * rowHeight);
+    document.querySelector('.delivery-chart-wrap').style.height = chartHeight + 'px';
+
+    makeChart('deliveries-city-chart', {
+      type: 'bar',
+      data: {
+        labels: deliveriesByCity.map(item => item.city),
+        datasets: [{
+          label: 'Livraisons',
+          data: deliveriesByCity.map(item => item.count),
+          backgroundColor: '#2A3E8F',
+          hoverBackgroundColor: '#1A2B5E',
+          borderWidth: 0,
+          borderRadius: 7,
+          borderSkipped: false,
+          barThickness: 18,
+          maxBarThickness: 22
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { right: 42, left: 2, top: 2, bottom: 0 } },
+        animation: { duration: 800 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            displayColors: false,
+            callbacks: {
+              label: context => context.raw.toLocaleString('fr-FR') + ' livraison' + (context.raw > 1 ? 's' : '')
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            grace: '12%',
+            grid: { color: '#E8EDF5', drawBorder: false },
+            border: { display: false },
+            ticks: { color: '#64748B', precision: 0, font: { size: 11 } }
+          },
+          y: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: { color: '#13285F', font: { size: 12, weight: '600' }, autoSkip: false }
+          }
+        }
+      }
+    });
+
+    loading.style.display = 'none';
+    content.style.display = 'grid';
+  } catch (e) {
+    loading.style.display = 'none';
+    error.textContent = 'Erreur livraisons : ' + e.message;
+    error.style.display = 'block';
+  }
+}
+
 async function loadAll() {
   document.getElementById('last-update').textContent = 'Actualisation...';
-  await Promise.all([loadFlotte(), loadInventaire(), loadTIG(), loadStage(), loadBenevolat()]);
+  await Promise.all([loadFlotte(), loadDeliveries(), loadInventaire(), loadTIG(), loadStage(), loadBenevolat()]);
   const now = new Date();
   document.getElementById('last-update').textContent = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 }
