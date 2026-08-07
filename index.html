@@ -654,6 +654,15 @@ document.addEventListener('DOMContentLoaded', checkAuth);
       </div>
     </section>
 
+    <section class="dashboard-section" id="benevoles-evolution-section">
+      <div class="dashboard-section-head"><i class="ti ti-user-plus"></i> Évolution des bénévoles</div>
+      <div class="dashboard-section-body">
+        <div id="benevoles-evolution-loading" class="loading"><div class="spinner"></div> Calcul des effectifs bénévoles...</div>
+        <div id="benevoles-evolution-error" class="error-box" style="display:none;"></div>
+        <div id="benevoles-evolution-content" style="display:none;"></div>
+      </div>
+    </section>
+
     <div class="hours-grid">
       <section class="hours-card hours-stage">
         <div class="hours-card-head"><i class="ti ti-school"></i> Stage</div>
@@ -679,15 +688,6 @@ document.addEventListener('DOMContentLoaded', checkAuth);
         <div id="benevolat-content" style="display:none;"></div>
       </section>
     </div>
-
-    <section class="dashboard-section" id="benevoles-evolution-section">
-      <div class="dashboard-section-head"><i class="ti ti-user-plus"></i> Évolution des bénévoles</div>
-      <div class="dashboard-section-body">
-        <div id="benevoles-evolution-loading" class="loading"><div class="spinner"></div> Calcul des effectifs bénévoles...</div>
-        <div id="benevoles-evolution-error" class="error-box" style="display:none;"></div>
-        <div id="benevoles-evolution-content" style="display:none;"></div>
-      </div>
-    </section>
 
     <section class="dashboard-section etp-section">
       <div class="dashboard-section-head"><i class="ti ti-users-group"></i> Equivalent ETP</div>
@@ -1405,31 +1405,35 @@ async function loadBenevolesEvolution() {
     }
 
     content.innerHTML =
-      '<div class="volunteer-evolution-panel">' +
-        '<div class="volunteer-evolution-wrap">' +
-          '<div class="volunteer-donut-block">' +
-            '<div class="volunteer-donut">' +
-              '<canvas id="benevoles-chart-before" width="200" height="200"></canvas>' +
-              '<div class="volunteer-donut-center">' +
-                '<div class="volunteer-donut-value navy">' + before2026.toLocaleString('fr-FR') + '</div>' +
+      '<div style="background:#fff;border-radius:16px;border:0.5px solid rgba(0,0,0,0.07);padding:28px 32px;">' +
+        '<div style="display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap;">' +
+
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:14px;">' +
+            '<div style="position:relative;width:160px;height:160px;">' +
+              '<canvas id="benevoles-chart-before" width="160" height="160"></canvas>' +
+              '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">' +
+                '<div style="font-size:32px;font-weight:700;color:#1A2B5E;line-height:1;">' + before2026.toLocaleString('fr-FR') + '</div>' +
               '</div>' +
             '</div>' +
-            '<div class="volunteer-donut-label">01/01/2026</div>' +
+            '<div style="font-size:22px;font-weight:700;color:#1A2B5E;text-align:center;">01/01/2026</div>' +
           '</div>' +
-          '<div class="volunteer-evolution-middle">' +
-            '<div class="meta">évolution</div>' +
-            '<div class="pct ' + pctClass + '">' + pctText + '</div>' +
-            '<div class="arrow ' + pctClass + '">' + arrow + '</div>' +
+
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">' +
+            '<div style="font-size:13px;color:#94A3B8;">évolution</div>' +
+            '<div style="font-size:36px;font-weight:800;color:' + (pctClass === 'positive' ? '#22C55E' : pctClass === 'negative' ? '#EF4444' : '#F5C842') + ';line-height:1;">' + pctText + '</div>' +
+            '<div style="font-size:20px;color:' + (pctClass === 'positive' ? '#22C55E' : pctClass === 'negative' ? '#EF4444' : '#F5C842') + ';">' + arrow + '</div>' +
           '</div>' +
-          '<div class="volunteer-donut-block">' +
-            '<div class="volunteer-donut">' +
-              '<canvas id="benevoles-chart-current" width="200" height="200"></canvas>' +
-              '<div class="volunteer-donut-center">' +
-                '<div class="volunteer-donut-value gold">' + currentTotal.toLocaleString('fr-FR') + '</div>' +
+
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:14px;">' +
+            '<div style="position:relative;width:160px;height:160px;">' +
+              '<canvas id="benevoles-chart-current" width="160" height="160"></canvas>' +
+              '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">' +
+                '<div style="font-size:32px;font-weight:700;color:#D4A017;line-height:1;">' + currentTotal.toLocaleString('fr-FR') + '</div>' +
               '</div>' +
             '</div>' +
-            '<div class="volunteer-donut-label">Actuel</div>' +
+            '<div style="font-size:22px;font-weight:700;color:#1A2B5E;text-align:center;">Actuel</div>' +
           '</div>' +
+
         '</div>' +
       '</div>';
 
@@ -1440,8 +1444,8 @@ async function loadBenevolesEvolution() {
       const objective = Math.max(before2026, currentTotal, 1) * 1.1;
       const donutOpts = (val, max, color) => ({
         type: 'doughnut',
-        data: { datasets: [{ data: [val, Math.max(max - val, 0)], backgroundColor: [color, '#E5E7EB'], borderWidth: 0 }] },
-        options: { cutout: '74%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1000 } }
+        data: { datasets: [{ data: [val, Math.max(max - val, 0)], backgroundColor: [color, '#F1F5F9'], borderWidth: 0 }] },
+        options: { cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: { duration: 1000 } }
       });
       makeChart('benevoles-chart-before', donutOpts(before2026, objective, '#1A2B5E'));
       makeChart('benevoles-chart-current', donutOpts(currentTotal, objective, '#F0C53A'));
