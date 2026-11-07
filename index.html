@@ -661,15 +661,56 @@ async function loadFlotte() {
     if (rows.length < 2) throw new Error('Données insuffisantes.');
     const data = rows.slice(1).filter(r => r[0] && r[1]);
     const iDate=0, iChauffeur=1, iVehicule=2, iMoment=3, iKm=4, iLiquides=7, iFeux=9, iDesc=11;
-    const chauffeurs={}, vehicules={}, kmParJourVehicule={}, incidents=[]; const departsKm={};
+    const chauffeurs={}, vehicules={}, kmParJourVehicule={}, incidents=[];
     const resolveVehicle = buildVehicleResolver(data, iVehicule);
+    // Les EDL ne sont pas obligatoirement saisis dans l'ordre départ/retour,
+    // et un retour peut être absent ou effectué un autre jour.
+    // Calculer à partir des relevés de compteur successifs de chaque véhicule.
+    const compteurParVehicule = {};
+    const parseCompteur = value => {
+      const cleaned = String(value ?? '').replace(/\s/g, '').replace(/[^0-9.,-]/g, '').replace(',', '.');
+      const number = Number(cleaned);
+      return cleaned && Number.isFinite(number) && number > 0 ? number : null;
+    };
+    const parseDateEDL = value => {
+      const raw = String(value ?? '').trim();
+      const fr = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      const iso = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      const parts = fr ? [+fr[3],+fr[2],+fr[1],+(fr[4]||0),+(fr[5]||0),+(fr[6]||0)] : iso ? [+iso[1],+iso[2],+iso[3],+(iso[4]||0),+(iso[5]||0),+(iso[6]||0)] : null;
+      if (!parts) return null;
+      const [year,month,day,hour,minute,second] = parts;
+      const date = new Date(year,month-1,day,hour,minute,second);
+      return date.getFullYear()===year && date.getMonth()===month-1 && date.getDate()===day ? date : null;
+    };
     data.forEach((r,rowIndex)=>{
-      const chauffeur=r[iChauffeur]||''; const vehicule=resolveVehicle(r[iVehicule]); const moment=(r[iMoment]||'').toLowerCase(); const km=parseFloat(r[iKm])||0; const date=(r[iDate]||'').split(' ')[0]; const key=vehicule+'|'+date;
+      const chauffeur=r[iChauffeur]||''; const vehicule=resolveVehicle(r[iVehicule]);
+      const parsedDate=parseDateEDL(r[iDate]);
+      const date=String(r[iDate]||'').split(' ')[0];
       chauffeurs[chauffeur]=(chauffeurs[chauffeur]||0)+1; vehicules[vehicule]=(vehicules[vehicule]||0)+1;
-      if (moment.includes('départ')) departsKm[key]=km;
-      if (moment.includes('retour') && departsKm[key] !== undefined) { const diff = km - departsKm[key]; if (diff>0) { if (!kmParJourVehicule[date]) kmParJourVehicule[date]={}; kmParJourVehicule[date][vehicule]=(kmParJourVehicule[date][vehicule]||0)+diff; } }
-      const nouveauDommage=!!(r[iDesc]&&r[iDesc].trim()!==''); const problLiquide=!!(r[iLiquides]&&r[iLiquides].trim()!==''); const problFeux=!!(r[iFeux]&&r[iFeux].trim()!=='');
+      const km=parseCompteur(r[iKm]);
+      if (parsedDate && km !== null && vehicule) {
+        (compteurParVehicule[vehicule] ||= []).push({km, date:parsedDate, rowIndex});
+      }
+      const nouveauDommage=!!(r[iDesc]&&String(r[iDesc]).trim()!==''); const problLiquide=!!(r[iLiquides]&&String(r[iLiquides]).trim()!==''); const problFeux=!!(r[iFeux]&&String(r[iFeux]).trim()!=='');
       if (nouveauDommage || problLiquide || problFeux) incidents.push({ date, chauffeur, vehicule, desc:r[iDesc]||'Non précisé', rowIndex });
+    });
+    const kmSemaine={}, kmSemaineDerniere={}, kmMois={};
+    const now = new Date(); const dow = now.getDay()===0 ? 6 : now.getDay()-1;
+    const monday = new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow);
+    const lastMonday = new Date(monday); lastMonday.setDate(monday.getDate()-7);
+    const firstDayMonth = new Date(now.getFullYear(),now.getMonth(),1);
+    Object.keys(vehicules).forEach(v => { kmSemaine[v]=0; kmSemaineDerniere[v]=0; kmMois[v]=0; });
+    Object.entries(compteurParVehicule).forEach(([vehicule,releves]) => {
+      releves.sort((a,b)=>a.date-b.date || a.rowIndex-b.rowIndex);
+      for (let i=1; i<releves.length; i++) {
+        const previous=releves[i-1], current=releves[i];
+        const distance=current.km-previous.km;
+        // Relevés en baisse : erreur de saisie ou remise à zéro du compteur.
+        if (!(distance>0) || current.date>now) continue;
+        if (current.date>=monday) kmSemaine[vehicule]+=distance;
+        if (current.date>=lastMonday && current.date<monday) kmSemaineDerniere[vehicule]+=distance;
+        if (current.date>=firstDayMonth) kmMois[vehicule]+=distance;
+      }
     });
     const totalSorties = Object.values(chauffeurs).reduce((a,b)=>a+b,0);
     const chauffeurLabels = Object.keys(chauffeurs); const vehiculeLabels = Object.keys(vehicules);
@@ -678,12 +719,10 @@ async function loadFlotte() {
     const topVehicule = vehiculeLabels.reduce((a,b)=>(vehicules[a]||0) >= (vehicules[b]||0) ? a : b, vehiculeLabels[0] || '');
     const topVehiculeCount = vehicules[topVehicule] || 0;
     const topVehiculeMatch = topVehicule.match(/^(.+?)\s*\[(.+?)\]/); const topVName = topVehiculeMatch ? topVehiculeMatch[1].trim() : topVehicule; const topVPlate = topVehiculeMatch ? topVehiculeMatch[2].trim() : '';
-    const now = new Date(); const dow = now.getDay()===0 ? 6 : now.getDay()-1; const monday = new Date(now); monday.setDate(now.getDate()-dow); monday.setHours(0,0,0,0); const lastMonday = new Date(monday); lastMonday.setDate(monday.getDate()-7); const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
     const parseFrenchDate = value => { const parts = String(value||'').split(' ')[0].split('/'); if (parts.length!==3) return null; const parsed = new Date(Number(parts[2]), Number(parts[1])-1, Number(parts[0])); return Number.isNaN(parsed.getTime()) ? null : parsed; };
     const incidentsSemaine = incidents.map(incident => ({ ...incident, parsedDate: parseFrenchDate(incident.date) })).filter(incident => incident.parsedDate && incident.parsedDate >= monday && incident.parsedDate <= now).sort((a,b)=>b.parsedDate-a.parsedDate || b.rowIndex-a.rowIndex);
-    const allDates = [...new Set(data.map(r => (r[iDate]||'').split(' ')[0]).filter(Boolean))].sort();
-    const kmSemaine={}, kmSemaineDerniere={}, kmMois={};
-    vehiculeLabels.forEach(v => { kmSemaine[v]=0; kmSemaineDerniere[v]=0; kmMois[v]=0; allDates.forEach(d => { const p=d.split('/'); if (p.length===3) { const dt=new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0])); const km = kmParJourVehicule[d] && kmParJourVehicule[d][v] ? kmParJourVehicule[d][v] : 0; if (dt>=monday) kmSemaine[v]+=km; if (dt>=lastMonday && dt<monday) kmSemaineDerniere[v]+=km; if (dt>=firstDayMonth) kmMois[v]+=km; } }); });
+
     dashboardMeta.incidentsWeek = incidentsSemaine.length;
     const vehiclesHTML = vehiculeLabels.map(v => {
       const kmS=Math.round(kmSemaine[v]||0), kmSD=Math.round(kmSemaineDerniere[v]||0), kmM=Math.round(kmMois[v]||0);
